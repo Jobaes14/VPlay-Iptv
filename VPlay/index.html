@@ -566,23 +566,18 @@
                 const channels = [];
                 let currentChannel = null;
                 
-                // A valid M3U file should start with #EXTM3U
                 if (!lines[0] || !lines[0].startsWith('#EXTM3U')) {
                     console.warn('El contenido M3U no comienza con #EXTM3U.');
-                    // Depending on strictness, you might want to return [] or throw an error here
                 }
 
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i];
                     
                     if (line.startsWith('#EXTINF:')) {
-                        // Parse EXTINF line
-                        const extinf = line.substring(8); // Remove '#EXTINF:'
+                        const extinf = line.substring(8); 
                         const parts = extinf.split(',');
                         const duration = parts[0].trim();
                         const title = parts.slice(1).join(',').trim();
-                        
-                        // Extract attributes from the EXTINF line
                         const attributes = this.extractAttributes(extinf);
                         
                         currentChannel = {
@@ -596,13 +591,11 @@
                             url: null
                         };
                     } else if (line && !line.startsWith('#') && currentChannel) {
-                        // This is the URL line
                         currentChannel.url = line;
                         channels.push({...currentChannel});
                         currentChannel = null;
                     }
                 }
-                
                 return channels;
             }
             
@@ -610,11 +603,9 @@
                 const attributes = {};
                 const regex = /(\w+(?:-\w+)*)="([^"]*)"/g;
                 let match;
-                
                 while ((match = regex.exec(extinf)) !== null) {
                     attributes[match[1]] = match[2];
                 }
-                
                 return attributes;
             }
             
@@ -622,888 +613,339 @@
                 const movies = [];
                 const series = [];
                 const live = [];
-                
                 channels.forEach(channel => {
                     const title = channel.title.toLowerCase();
                     const group = channel.groupTitle.toLowerCase();
-                    
-                    // Movie detection patterns
-                    if (this.isMovie(title, group)) {
-                        movies.push({
-                            ...channel,
-                            type: 'movie',
-                            year: this.extractYear(title),
-                            genre: this.extractGenre(group)
-                        });
-                    }
-                    // Series detection patterns
-                    else if (this.isSeries(title, group)) {
-                        series.push({
-                            ...channel,
-                            type: 'series',
-                            season: this.extractSeason(title),
-                            episode: this.extractEpisode(title),
-                            genre: this.extractGenre(group)
-                        });
-                    }
-                    // Live TV (default)
-                    else {
-                        live.push({
-                            ...channel,
-                            type: 'live',
-                            category: group
-                        });
-                    }
+                    if (this.isMovie(title, group)) movies.push({...channel, type: 'movie', year: this.extractYear(title), genre: this.extractGenre(group)});
+                    else if (this.isSeries(title, group)) series.push({...channel, type: 'series', season: this.extractSeason(title), episode: this.extractEpisode(title), genre: this.extractGenre(group)});
+                    else live.push({...channel, type: 'live', category: group});
                 });
-                
                 return { movies, series, live };
             }
             
             static isMovie(title, group) {
                 const movieKeywords = ['movie', 'película', 'film', 'cinema', 'cine'];
-                const moviePatterns = [
-                    /\(\d{4}\)/,  // Year in parentheses
-                    /\[\d{4}\]/,  // Year in brackets
-                    /\b\d{4}\b/   // Year standalone
-                ];
-                
-                return movieKeywords.some(keyword => 
-                    title.includes(keyword) || group.includes(keyword)
-                ) || moviePatterns.some(pattern => pattern.test(title));
+                const moviePatterns = [/\(\d{4}\)/, /\[\d{4}\]/, /\b\d{4}\b/];
+                return movieKeywords.some(keyword => title.includes(keyword) || group.includes(keyword)) || moviePatterns.some(pattern => pattern.test(title));
             }
             
             static isSeries(title, group) {
                 const seriesKeywords = ['series', 'serie', 'tv', 'show', 'temporada', 'season', 'episode', 'episodio'];
-                const seriesPatterns = [
-                    /s\d+e\d+/i,    // S01E01 pattern
-                    /\bep?\s?\d+/i,  // Ep 01 pattern
-                    /season\s?\d+/i, // Season pattern
-                    /temporada\s?\d+/i // Spanish season
-                ];
-                
-                return seriesKeywords.some(keyword => 
-                    title.includes(keyword) || group.includes(keyword)
-                ) || seriesPatterns.some(pattern => pattern.test(title));
+                const seriesPatterns = [/s\d+e\d+/i, /\bep?\s?\d+/i, /season\s?\d+/i, /temporada\s?\d+/i];
+                return seriesKeywords.some(keyword => title.includes(keyword) || group.includes(keyword)) || seriesPatterns.some(pattern => pattern.test(title));
             }
             
-            static extractYear(title) {
-                const yearMatch = title.match(/\b(19|20)\d{2}\b/);
-                return yearMatch ? yearMatch[0] : null;
-            }
-            
-            static extractSeason(title) {
-                const seasonMatch = title.match(/s(\d+)/i) || title.match(/season\s?(\d+)/i) || title.match(/temporada\s?(\d+)/i);
-                return seasonMatch ? parseInt(seasonMatch[1]) : null;
-            }
-            
-            static extractEpisode(title) {
-                const episodeMatch = title.match(/e(\d+)/i) || title.match(/ep\s?(\d+)/i) || title.match(/episodio\s?(\d+)/i);
-                return episodeMatch ? parseInt(episodeMatch[1]) : null;
-            }
-            
+            static extractYear(title) { const match = title.match(/\b(19|20)\d{2}\b/); return match ? match[0] : null; }
+            static extractSeason(title) { const match = title.match(/s(\d+)/i) || title.match(/season\s?(\d+)/i) || title.match(/temporada\s?(\d+)/i); return match ? parseInt(match[1]) : null; }
+            static extractEpisode(title) { const match = title.match(/e(\d+)/i) || title.match(/ep\s?(\d+)/i) || title.match(/episodio\s?(\d+)/i); return match ? parseInt(match[1]) : null; }
             static extractGenre(group) {
-                const genres = {
-                    'action': ['action', 'accion', 'adventure'],
-                    'comedy': ['comedy', 'comedia', 'humor'],
-                    'drama': ['drama', 'drama'],
-                    'horror': ['horror', 'terror', 'miedo'],
-                    'thriller': ['thriller', 'suspense'],
-                    'romance': ['romance', 'romantic'],
-                    'sci-fi': ['sci-fi', 'science', 'fiction', 'ciencia'],
-                    'documentary': ['documentary', 'documental'],
-                    'sports': ['sports', 'deportes', 'sport'],
-                    'news': ['news', 'noticias', 'noticia'],
-                    'kids': ['kids', 'children', 'infantil', 'niños']
-                };
-                
-                for (const [genre, keywords] of Object.entries(genres)) {
-                    if (keywords.some(keyword => group.includes(keyword))) {
-                        return genre;
-                    }
-                }
-                
+                const genres = { 'action': ['action', 'accion', 'adventure'], 'comedy': ['comedy', 'comedia', 'humor'], 'drama': ['drama'], 'horror': ['horror', 'terror', 'miedo'], 'thriller': ['thriller', 'suspense'], 'romance': ['romance', 'romantic'], 'sci-fi': ['sci-fi', 'science', 'fiction', 'ciencia'], 'documentary': ['documentary', 'documental'], 'sports': ['sports', 'deportes', 'sport'], 'news': ['news', 'noticias'], 'kids': ['kids', 'children', 'infantil', 'niños']};
+                for (const [genre, keywords] of Object.entries(genres)) { if (keywords.some(keyword => group.includes(keyword))) return genre; }
                 return 'general';
             }
         }
         
         // CORS Proxy for M3U fetching
         class CORSProxy {
-            static async fetchM3U(url) {
-                const proxyUrls = [
-                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-                    // `https://cors-anywhere.herokuapp.com/${url}`, // Often requires demo activation
-                    url // Direct attempt (will likely fail on GitHub Pages due to CORS)
-                ];
+            static async fetchM3U(originalUrl) {
+                const attempts = [];
+                // Attempt 1: Proxy
+                attempts.push(`https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`);
+
+                // Attempt 2 (Optional, often needs demo activation): Another proxy
+                // attempts.push(`https://cors-anywhere.herokuapp.com/${originalUrl}`);
+
+                // Do NOT attempt direct fetch if page is HTTPS and target URL is HTTP
+                // This was causing the "Mixed Content" error when the proxy failed.
+                const isPageSecure = window.location.protocol === 'https:';
+                const isTargetInsecure = originalUrl.startsWith('http://');
+
+                if (!(isPageSecure && isTargetInsecure)) {
+                    // Only add direct attempt if:
+                    // 1. Page is HTTP (less common for GitHub Pages but possible locally)
+                    // OR 2. Target URL is HTTPS (CORS might still be an issue, but not mixed content)
+                    // OR 3. Same origin (won't be the case here for external M3U)
+                     if (!originalUrl.startsWith('http://') || !isPageSecure) {
+                        attempts.push(originalUrl); // Add direct attempt if not mixed content scenario
+                    }
+                } else {
+                    console.warn("Intento de carga directa de HTTP desde HTTPS bloqueado para evitar contenido mixto. Dependiendo únicamente del proxy.");
+                }
                 
-                for (const proxyUrl of proxyUrls) {
+                for (const currentFetchUrl of attempts) {
                     try {
-                        console.log(`Intentando obtener M3U vía: ${proxyUrl}`);
-                        const response = await fetch(proxyUrl, {
+                        console.log(`Intentando obtener M3U vía: ${currentFetchUrl}`);
+                        const response = await fetch(currentFetchUrl, {
                             method: 'GET',
-                            headers: {
-                                'Accept': 'application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*'
-                            }
+                            headers: { 'Accept': 'application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*' }
                         });
                         
                         if (response.ok) {
                             const textContent = await response.text();
-                            console.log(`Contenido obtenido de ${proxyUrl} (primeros 500 caracteres):`, textContent.substring(0,500));
-                            return textContent;
+                            console.log(`Contenido obtenido de ${currentFetchUrl} (primeros 500 caracteres):`, textContent.substring(0,500));
+                            // Basic check if it looks like M3U before returning
+                            if (textContent && textContent.trim().startsWith('#EXTM3U')) {
+                                return textContent;
+                            } else {
+                                console.warn(`Respuesta OK de ${currentFetchUrl}, pero el contenido no parece M3U válido.`);
+                                // Continue to next attempt if content is not M3U, even if response was 200 OK
+                            }
                         } else {
-                            console.warn(`Respuesta no OK de ${proxyUrl}: ${response.status} ${response.statusText}`);
+                            console.warn(`Respuesta no OK de ${currentFetchUrl}: ${response.status} ${response.statusText}`);
                         }
                     } catch (error) {
-                        console.warn(`Falló la obtención vía ${proxyUrl}:`, error);
-                        continue; // Try next proxy
+                        console.warn(`Falló la obtención vía ${currentFetchUrl}:`, error);
+                        // Continue to next attempt
                     }
                 }
                 
-                throw new Error('No se pudo obtener la playlist M3U. Verifica la URL y tu conexión. Puede ser un problema de CORS o del servidor.');
+                throw new Error('No se pudo obtener la playlist M3U. Todos los intentos (proxy/directo) fallaron o el contenido no era válido. Verifica la URL, tu conexión y posibles bloqueos de CORS/Servidor o contenido mixto si la URL es HTTP.');
             }
         }
         
         // Login Functions
-        function showM3UForm() {
-            document.getElementById('loginInitial').classList.add('hidden');
-            document.getElementById('m3uForm').classList.remove('hidden');
-        }
-        
-        function showXtreamForm() {
-            document.getElementById('loginInitial').classList.add('hidden');
-            document.getElementById('xtreamForm').classList.remove('hidden');
-        }
-        
-        function backToInitial() {
-            document.getElementById('loginInitial').classList.remove('hidden');
-            document.getElementById('m3uForm').classList.add('hidden');
-            document.getElementById('xtreamForm').classList.add('hidden');
-            clearErrors();
-        }
-        
-        function clearErrors() {
-            document.querySelectorAll('.error-message').forEach(el => {
-                el.classList.add('hidden');
-                el.textContent = '';
-            });
-        }
-        
-        function showError(elementId, message) {
-            const errorEl = document.getElementById(elementId);
-            errorEl.textContent = message;
-            errorEl.classList.remove('hidden');
-        }
+        function showM3UForm() { document.getElementById('loginInitial').classList.add('hidden'); document.getElementById('m3uForm').classList.remove('hidden'); }
+        function showXtreamForm() { document.getElementById('loginInitial').classList.add('hidden'); document.getElementById('xtreamForm').classList.remove('hidden'); }
+        function backToInitial() { document.getElementById('loginInitial').classList.remove('hidden'); document.getElementById('m3uForm').classList.add('hidden'); document.getElementById('xtreamForm').classList.add('hidden'); clearErrors(); }
+        function clearErrors() { document.querySelectorAll('.error-message').forEach(el => { el.classList.add('hidden'); el.textContent = ''; });}
+        function showError(elementId, message) { const errorEl = document.getElementById(elementId); errorEl.textContent = message; errorEl.classList.remove('hidden');}
         
         async function connectM3U(event) {
             event.preventDefault();
             clearErrors();
-            
             const name = document.getElementById('m3uName').value.trim();
             const url = document.getElementById('m3uUrl').value.trim();
             const connectBtn = document.getElementById('m3uConnectBtn');
+            if (!name || !url) { showError('m3uError', 'Por favor, completa todos los campos.'); return; }
+            try { new URL(url); } catch (e) { showError('m3uError', 'Por favor, ingresa una URL válida.'); return; }
             
-            if (!name || !url) {
-                showError('m3uError', 'Por favor, completa todos los campos.');
-                return;
-            }
-            
-            // Validate URL format
+            connectBtn.innerHTML = '<div class="loading-spinner"></div>Conectando...'; connectBtn.disabled = true;
             try {
-                new URL(url);
-            } catch (e) {
-                showError('m3uError', 'Por favor, ingresa una URL válida.');
-                return;
-            }
-            
-            // Show loading state
-            connectBtn.innerHTML = '<div class="loading-spinner"></div>Conectando...';
-            connectBtn.disabled = true;
-            
-            try {
-                // Fetch M3U
                 const m3uContent = await CORSProxy.fetchM3U(url);
-                
-                // **MODIFICADO:** Log para depuración y validación más estricta
                 console.log('Contenido M3U recibido para parsear (primeros 500 caracteres):', m3uContent ? m3uContent.substring(0,500) : "CONTENIDO VACÍO O NULO");
-
-                if (!m3uContent || !m3uContent.trim().startsWith('#EXTM3U')) {
-                    throw new Error('El archivo no parece ser una playlist M3U válida. Asegúrate que la URL sea correcta y el contenido comience con #EXTM3U.');
-                }
-                
+                if (!m3uContent || !m3uContent.trim().startsWith('#EXTM3U')) { throw new Error('El archivo no parece ser una playlist M3U válida. Asegúrate que la URL sea correcta y el contenido comience con #EXTM3U.');}
                 const channels = M3UParser.parse(m3uContent);
-                
-                if (channels.length === 0) {
-                    throw new Error('No se encontraron canales en la playlist. El contenido podría estar vacío o mal formateado después de #EXTM3U.');
-                }
-                
+                if (channels.length === 0) { throw new Error('No se encontraron canales en la playlist. El contenido podría estar vacío o mal formateado después de #EXTM3U.');}
                 const categorized = M3UParser.categorizeChannels(channels);
-                
-                // Store data globally
-                m3uData = {
-                    ...categorized,
-                    all: channels,
-                    name: name,
-                    url: url
-                };
-                
-                // Success - transition to main app
-                isLoggedIn = true;
-                document.getElementById('loginScreen').classList.add('hidden');
-                document.getElementById('mainApp').classList.remove('hidden');
-                
-                // Initialize content
+                m3uData = { ...categorized, all: channels, name: name, url: url };
+                isLoggedIn = true; document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden');
                 initializeContent();
-                
             } catch (error) {
                 console.error('M3U Connection Error:', error);
                 showError('m3uError', error.message);
             } finally {
-                // Reset button
-                connectBtn.innerHTML = '<i class="fas fa-link mr-2"></i>Conectar';
-                connectBtn.disabled = false;
+                connectBtn.innerHTML = '<i class="fas fa-link mr-2"></i>Conectar'; connectBtn.disabled = false;
             }
         }
         
         async function connectXtream(event) {
-            event.preventDefault();
-            clearErrors();
-            
+            event.preventDefault(); clearErrors();
             const name = document.getElementById('xtreamName').value.trim();
             const server = document.getElementById('xtreamServer').value.trim();
             const user = document.getElementById('xtreamUser').value.trim();
             const pass = document.getElementById('xtreamPass').value.trim();
             const connectBtn = document.getElementById('xtreamConnectBtn');
-            
-            if (!name || !server || !user || !pass) {
-                showError('xtreamError', 'Por favor, completa todos los campos.');
-                return;
-            }
-            
-            // Show loading state
-            connectBtn.innerHTML = '<div class="loading-spinner"></div>Conectando...';
-            connectBtn.disabled = true;
-            
+            if (!name || !server || !user || !pass) { showError('xtreamError', 'Por favor, completa todos los campos.'); return; }
+            connectBtn.innerHTML = '<div class="loading-spinner"></div>Conectando...'; connectBtn.disabled = true;
             try {
-                // Build Xtream API URLs
                 const baseUrl = server.endsWith('/') ? server.slice(0, -1) : server;
                 const authParams = `username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+                const testAuthUrl = `${baseUrl}/player_api.php?${authParams}`; // URL para probar autenticación
+                console.log("Probando autenticación Xtream:", testAuthUrl);
                 
-                // Test connection with player_api.php
-                // For Xtream Codes, the M3U URL is typically constructed like this:
-                // const m3uUrlForXtream = `${baseUrl}/get.php?${authParams}&type=m3u_plus&output=ts`; // Or other output formats
-                // console.log("Intentando obtener M3U desde Xtream URL:", m3uUrlForXtream);
-                // const m3uContent = await CORSProxy.fetchM3U(m3uUrlForXtream);
-
-                // The original code tests auth via player_api.php, which is fine for auth check
-                // but doesn't directly give the M3U content for the M3U parser.
-                // For simplicity, we'll keep the auth test and then, if successful,
-                // you'd ideally fetch and parse the M3U.
-                // For now, it transitions to main app with empty data if auth is ok.
-                
-                const testUrl = `${baseUrl}/player_api.php?${authParams}`;
-                console.log("Probando autenticación Xtream:", testUrl);
-                const response = await fetch(testUrl); // This might also need a CORS proxy if server restricts
-                
-                if (!response.ok) {
-                    throw new Error(`No se pudo conectar al servidor Xtream Codes. Estado: ${response.status}`);
+                // Para player_api.php, también podríamos necesitar un proxy si el servidor Xtream tiene CORS restrictivo
+                // o si es HTTP y la página es HTTPS.
+                let authResponseText;
+                try {
+                    // Intentar obtener player_api.php a través del proxy, ya que el servidor Xtream puede ser HTTP
+                    authResponseText = await CORSProxy.fetchM3U(testAuthUrl); // Reutilizamos fetchM3U para obtener el texto
+                } catch (proxyError) {
+                    // Si CORSProxy falla para la URL de player_api.php (que no es M3U pero es una URL)
+                     console.error("Error al obtener player_api.php a través de CORSProxy:", proxyError);
+                     throw new Error(`No se pudo conectar al servidor Xtream (player_api.php). Estado: ${proxyError.message}`);
                 }
-                
-                const authData = await response.json();
-                console.log("Respuesta de autenticación Xtream:", authData);
-                
-                if (authData.user_info && authData.user_info.auth === 1) {
-                    // Authentication successful
-                    // CONSTRUIR LA URL M3U Y CARGARLA
-                    const m3uUrlFromXtream = `${baseUrl}/get.php?${authParams}&type=m3u_plus&output=ts`; // Puedes probar con m3u simple también
-                    console.log("Autenticación Xtream exitosa. Obteniendo M3U desde:", m3uUrlFromXtream);
 
+                const authData = JSON.parse(authResponseText); // Parsear la respuesta JSON
+                console.log("Respuesta de autenticación Xtream:", authData);
+
+                if (authData.user_info && authData.user_info.auth === 1) {
+                    const m3uUrlFromXtream = `${baseUrl}/get.php?${authParams}&type=m3u_plus&output=ts`;
+                    console.log("Autenticación Xtream exitosa. Obteniendo M3U desde:", m3uUrlFromXtream);
                     const m3uContent = await CORSProxy.fetchM3U(m3uUrlFromXtream);
                     console.log('Contenido M3U de Xtream (primeros 500):', m3uContent ? m3uContent.substring(0,500) : "VACÍO");
-
-                    if (!m3uContent || !m3uContent.trim().startsWith('#EXTM3U')) {
-                         throw new Error('Autenticación Xtream exitosa, pero la playlist M3U obtenida no es válida.');
-                    }
-
+                    if (!m3uContent || !m3uContent.trim().startsWith('#EXTM3U')) { throw new Error('Autenticación Xtream exitosa, pero la playlist M3U obtenida no es válida.');}
                     const channels = M3UParser.parse(m3uContent);
-                    if (channels.length === 0) {
-                        throw new Error('Playlist M3U de Xtream obtenida pero no se encontraron canales.');
-                    }
+                    if (channels.length === 0) { throw new Error('Playlist M3U de Xtream obtenida pero no se encontraron canales.');}
                     const categorized = M3UParser.categorizeChannels(channels);
-                    
-                    m3uData = {
-                        ...categorized,
-                        all: channels,
-                        name: name,
-                        server: baseUrl, // Store original server info if needed
-                        authInfo: authData.user_info // Store auth info
-                    };
-                    
-                    isLoggedIn = true;
-                    document.getElementById('loginScreen').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
+                    m3uData = { ...categorized, all: channels, name: name, server: baseUrl, authInfo: authData.user_info };
+                    isLoggedIn = true; document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden');
                     initializeContent();
-
                 } else {
-                    throw new Error(authData.user_info.message || 'Credenciales incorrectas o error de autenticación Xtream.');
+                    throw new Error(authData.user_info?.message || 'Credenciales incorrectas o error de autenticación Xtream.');
                 }
-                
             } catch (error) {
                 console.error('Xtream Connection Error:', error);
-                showError('xtreamError', error.message);
+                // Si el error es por JSON.parse, puede ser que authResponseText no fuera JSON válido
+                if (error instanceof SyntaxError) {
+                    showError('xtreamError', 'Error al procesar respuesta del servidor Xtream. No es JSON válido.');
+                } else {
+                    showError('xtreamError', error.message);
+                }
             } finally {
-                // Reset button
-                connectBtn.innerHTML = '<i class="fas fa-link mr-2"></i>Conectar';
-                connectBtn.disabled = false;
+                connectBtn.innerHTML = '<i class="fas fa-link mr-2"></i>Conectar'; connectBtn.disabled = false;
             }
         }
         
         // Content Initialization
-        function initializeContent() {
-            updateHomeSection();
-            updateMoviesSection();
-            updateSeriesSection();
-            updateLiveSection();
-        }
-        
+        function initializeContent() { updateHomeSection(); updateMoviesSection(); updateSeriesSection(); updateLiveSection(); }
         function updateHomeSection() {
-            const moviesCarousel = document.getElementById('moviesCarousel');
-            const seriesCarousel = document.getElementById('seriesCarousel');
-            
-            // Update movies carousel
-            if (m3uData.movies.length > 0) {
-                moviesCarousel.innerHTML = '';
-                m3uData.movies.slice(0, 10).forEach(movie => {
-                    const card = createContentCard(movie);
-                    moviesCarousel.appendChild(card);
-                });
-            } else {
-                moviesCarousel.innerHTML = '<div class="flex items-center justify-center min-w-full h-48 text-gray-500"><i class="fas fa-film mr-2"></i><span>No hay películas disponibles</span></div>';
-            }
-            
-            // Update series carousel
-            if (m3uData.series.length > 0) {
-                seriesCarousel.innerHTML = '';
-                m3uData.series.slice(0, 10).forEach(series => {
-                    const card = createContentCard(series);
-                    seriesCarousel.appendChild(card);
-                });
-            } else {
-                seriesCarousel.innerHTML = '<div class="flex items-center justify-center min-w-full h-48 text-gray-500"><i class="fas fa-tv mr-2"></i><span>No hay series disponibles</span></div>';
-            }
-            
-            // Update hero section with featured content
-            if (m3uData.all.length > 0) {
-                const featured = m3uData.all[Math.floor(Math.random() * m3uData.all.length)]; // Random featured
-                document.getElementById('heroTitle').textContent = featured.title;
-                document.getElementById('heroDescription').textContent = `Disfruta de ${featured.title} y mucho más contenido en VPlay IPTV.`;
-            } else {
-                 document.getElementById('heroTitle').textContent = "Bienvenido a VPlay IPTV";
-                 document.getElementById('heroDescription').textContent = "Conecta tu playlist para empezar.";
-            }
+            const moviesCarousel = document.getElementById('moviesCarousel'); const seriesCarousel = document.getElementById('seriesCarousel');
+            if (m3uData.movies.length > 0) { moviesCarousel.innerHTML = ''; m3uData.movies.slice(0, 10).forEach(movie => moviesCarousel.appendChild(createContentCard(movie)));} 
+            else { moviesCarousel.innerHTML = '<div class="flex items-center justify-center min-w-full h-48 text-gray-500"><i class="fas fa-film mr-2"></i><span>No hay películas disponibles</span></div>';}
+            if (m3uData.series.length > 0) { seriesCarousel.innerHTML = ''; m3uData.series.slice(0, 10).forEach(series => seriesCarousel.appendChild(createContentCard(series)));} 
+            else { seriesCarousel.innerHTML = '<div class="flex items-center justify-center min-w-full h-48 text-gray-500"><i class="fas fa-tv mr-2"></i><span>No hay series disponibles</span></div>';}
+            if (m3uData.all.length > 0) { const featured = m3uData.all[Math.floor(Math.random() * m3uData.all.length)]; document.getElementById('heroTitle').textContent = featured.title; document.getElementById('heroDescription').textContent = `Disfruta de ${featured.title} y mucho más contenido en VPlay IPTV.`;}
+            else { document.getElementById('heroTitle').textContent = "Bienvenido a VPlay IPTV"; document.getElementById('heroDescription').textContent = "Conecta tu playlist para empezar.";}
         }
-        
         function updateMoviesSection() {
             const moviesGrid = document.getElementById('moviesGrid');
-            
-            if (m3uData.movies.length > 0) {
-                moviesGrid.innerHTML = '';
-                m3uData.movies.forEach(movie => {
-                    const card = createContentCard(movie);
-                    moviesGrid.appendChild(card);
-                });
-                
-                // Update genre filter
-                const genres = [...new Set(m3uData.movies.map(m => m.genre).filter(g => g))];
-                updateGenreFilter('movieGenreFilter', genres);
-            } else {
-                moviesGrid.innerHTML = '<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-film mr-2"></i><span>No hay películas disponibles</span></div>';
-            }
+            if (m3uData.movies.length > 0) { moviesGrid.innerHTML = ''; m3uData.movies.forEach(movie => moviesGrid.appendChild(createContentCard(movie))); const genres = [...new Set(m3uData.movies.map(m => m.genre).filter(g => g))]; updateGenreFilter('movieGenreFilter', genres);}
+            else { moviesGrid.innerHTML = '<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-film mr-2"></i><span>No hay películas disponibles</span></div>';}
         }
-        
         function updateSeriesSection() {
             const seriesGrid = document.getElementById('seriesGrid');
-            
-            if (m3uData.series.length > 0) {
-                seriesGrid.innerHTML = '';
-                m3uData.series.forEach(series => {
-                    const card = createContentCard(series);
-                    seriesGrid.appendChild(card);
-                });
-                
-                // Update genre filter
-                const genres = [...new Set(m3uData.series.map(s => s.genre).filter(g => g))];
-                updateGenreFilter('seriesGenreFilter', genres);
-            } else {
-                seriesGrid.innerHTML = '<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-tv mr-2"></i><span>No hay series disponibles</span></div>';
-            }
+            if (m3uData.series.length > 0) { seriesGrid.innerHTML = ''; m3uData.series.forEach(series => seriesGrid.appendChild(createContentCard(series))); const genres = [...new Set(m3uData.series.map(s => s.genre).filter(g => g))]; updateGenreFilter('seriesGenreFilter', genres);}
+            else { seriesGrid.innerHTML = '<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-tv mr-2"></i><span>No hay series disponibles</span></div>';}
         }
-        
         function updateLiveSection() {
             const channelsList = document.getElementById('channelsList');
-            
-            if (m3uData.live.length > 0) {
-                channelsList.innerHTML = '';
-                m3uData.live.forEach((channel, index) => {
-                    const channelEl = createChannelItem(channel, index);
-                    channelsList.appendChild(channelEl);
-                });
-            } else {
-                channelsList.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><i class="fas fa-broadcast-tower mr-2"></i><span>No hay canales disponibles</span></div>';
-            }
+            if (m3uData.live.length > 0) { channelsList.innerHTML = ''; m3uData.live.forEach((channel, index) => channelsList.appendChild(createChannelItem(channel, index)));}
+            else { channelsList.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><i class="fas fa-broadcast-tower mr-2"></i><span>No hay canales disponibles</span></div>';}
         }
-        
         function createContentCard(content) {
-            const card = document.createElement('div');
-            card.className = 'content-card netflix-card cursor-pointer';
-            
-            // Set background image if logo is available, with a fallback color/icon
-            if (content.tvgLogo) {
-                card.style.backgroundImage = `url(${content.tvgLogo})`;
-                card.style.backgroundRepeat = 'no-repeat';
-                card.style.backgroundSize = 'cover'; // Or 'contain' if logos are small
-                card.style.backgroundColor = 'var(--netflix-light-gray)'; // Fallback if image fails
-            } else {
-                // Placeholder icon or color
-                card.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-gray-500 text-4xl"><i class="fas ${content.type === 'movie' ? 'fa-film' : (content.type === 'series' ? 'fa-tv' : 'fa-broadcast-tower')}"></i></div>`;
-            }
-            
-            // Overlay for text
-            const textOverlay = document.createElement('div');
-            textOverlay.className = 'absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent p-3 flex flex-col justify-end';
-            
-            textOverlay.innerHTML = `
-                <h3 class="font-semibold text-sm mb-1 truncate" title="${content.title}">${content.title}</h3>
-                ${content.year ? `<p class="text-xs text-gray-300">${content.year}</p>` : ''}
-                ${content.genre && content.genre !== 'general' ? `<p class="text-xs text-gray-400 capitalize">${content.genre}</p>` : ''}
-                ${content.groupTitle && content.groupTitle !== 'Unknown' && content.groupTitle.toLowerCase() !== content.genre ? `<p class="text-xs text-gray-500 truncate" title="${content.groupTitle}">${content.groupTitle}</p>` : ''}
-            `;
-            card.appendChild(textOverlay);
-            
-            card.addEventListener('click', () => playContent(content));
-            
-            return card;
+            const card = document.createElement('div'); card.className = 'content-card netflix-card cursor-pointer';
+            if (content.tvgLogo) { card.style.backgroundImage = `url(${content.tvgLogo})`; card.style.backgroundRepeat = 'no-repeat'; card.style.backgroundSize = 'cover'; card.style.backgroundColor = 'var(--netflix-light-gray)';} 
+            else { card.innerHTML = `<div class="absolute inset-0 flex items-center justify-center text-gray-500 text-4xl"><i class="fas ${content.type === 'movie' ? 'fa-film' : (content.type === 'series' ? 'fa-tv' : 'fa-broadcast-tower')}"></i></div>`;}
+            const textOverlay = document.createElement('div'); textOverlay.className = 'absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent p-3 flex flex-col justify-end';
+            textOverlay.innerHTML = `<h3 class="font-semibold text-sm mb-1 truncate" title="${content.title}">${content.title}</h3> ${content.year ? `<p class="text-xs text-gray-300">${content.year}</p>` : ''} ${content.genre && content.genre !== 'general' ? `<p class="text-xs text-gray-400 capitalize">${content.genre}</p>` : ''} ${content.groupTitle && content.groupTitle !== 'Unknown' && content.groupTitle.toLowerCase() !== content.genre ? `<p class="text-xs text-gray-500 truncate" title="${content.groupTitle}">${content.groupTitle}</p>` : ''}`;
+            card.appendChild(textOverlay); card.addEventListener('click', () => playContent(content)); return card;
         }
-        
         function createChannelItem(channel, index) {
-            const channelEl = document.createElement('div');
-            channelEl.className = 'channel-item';
-            channelEl.dataset.channelIndex = index;
-            
-            const channelNumber = index + 1;
-            const categoryColor = getCategoryColor(channel.category);
-            
-            channelEl.innerHTML = `
-                ${channel.tvgLogo ? 
-                    `<img src="${channel.tvgLogo}" alt="logo" class="w-8 h-8 rounded mr-3 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/> <div class="w-8 h-8 ${categoryColor} rounded mr-3 items-center justify-center text-white text-xs font-bold" style="display:none;">${channelNumber}</div>` :
-                    `<div class="w-8 h-8 ${categoryColor} rounded mr-3 flex items-center justify-center"> <span class="text-white text-xs font-bold">${channelNumber}</span> </div>`
-                }
-                <div class="flex-1 overflow-hidden">
-                    <div class="font-medium text-sm truncate" title="${channel.title}">${channel.title}</div>
-                    <div class="text-xs text-gray-400 truncate" title="${channel.category || 'General'}">${channel.category || 'General'}</div>
-                </div>
-            `;
-            
-            channelEl.addEventListener('click', () => selectChannel(channelEl, channel));
-            
-            return channelEl;
+            const channelEl = document.createElement('div'); channelEl.className = 'channel-item'; channelEl.dataset.channelIndex = index;
+            const channelNumber = index + 1; const categoryColor = getCategoryColor(channel.category);
+            channelEl.innerHTML = `${channel.tvgLogo ? `<img src="${channel.tvgLogo}" alt="logo" class="w-8 h-8 rounded mr-3 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"/> <div class="w-8 h-8 ${categoryColor} rounded mr-3 items-center justify-center text-white text-xs font-bold" style="display:none;">${channelNumber}</div>` : `<div class="w-8 h-8 ${categoryColor} rounded mr-3 flex items-center justify-center"> <span class="text-white text-xs font-bold">${channelNumber}</span> </div>`} <div class="flex-1 overflow-hidden"> <div class="font-medium text-sm truncate" title="${channel.title}">${channel.title}</div> <div class="text-xs text-gray-400 truncate" title="${channel.category || 'General'}">${channel.category || 'General'}</div> </div>`;
+            channelEl.addEventListener('click', () => selectChannel(channelEl, channel)); return channelEl;
         }
-        
         function getCategoryColor(category) {
-            const catLower = category?.toLowerCase() || 'general';
-            const colors = {
-                'sports': 'bg-blue-600', 'deportes': 'bg-blue-600',
-                'news': 'bg-red-600', 'noticias': 'bg-red-600',
-                'movies': 'bg-purple-600', 'peliculas': 'bg-purple-600',
-                'kids': 'bg-green-600', 'infantil': 'bg-green-600',
-                'music': 'bg-pink-600', 'musica': 'bg-pink-600',
-                'documentary': 'bg-yellow-600', 'documentales': 'bg-yellow-600',
-                'entertainment': 'bg-indigo-600', 'entretenimiento': 'bg-indigo-600',
-                'series': 'bg-teal-600',
-                'general': 'bg-gray-600'
-            };
-            
-            for (const key in colors) {
-                if (catLower.includes(key)) return colors[key];
-            }
-            return colors['general'];
+            const catLower = category?.toLowerCase() || 'general'; const colors = { 'sports': 'bg-blue-600', 'deportes': 'bg-blue-600', 'news': 'bg-red-600', 'noticias': 'bg-red-600', 'movies': 'bg-purple-600', 'peliculas': 'bg-purple-600', 'kids': 'bg-green-600', 'infantil': 'bg-green-600', 'music': 'bg-pink-600', 'musica': 'bg-pink-600', 'documentary': 'bg-yellow-600', 'documentales': 'bg-yellow-600', 'entertainment': 'bg-indigo-600', 'entretenimiento': 'bg-indigo-600', 'series': 'bg-teal-600', 'general': 'bg-gray-600'};
+            for (const key in colors) { if (catLower.includes(key)) return colors[key]; } return colors['general'];
         }
-        
-        function updateGenreFilter(filterId, genres) {
-            const filter = document.getElementById(filterId);
-            filter.innerHTML = '<option value="">Todos los Géneros</option>';
-            
-            genres.forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre;
-                option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
-                filter.appendChild(option);
-            });
-        }
+        function updateGenreFilter(filterId, genres) { const filter = document.getElementById(filterId); filter.innerHTML = '<option value="">Todos los Géneros</option>'; genres.forEach(genre => { const option = document.createElement('option'); option.value = genre; option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1); filter.appendChild(option);});}
         
         // Media Player Functions
         function playContent(content) {
-            if (!content.url) {
-                // Simple custom alert
-                showCustomAlert('URL de contenido no disponible.');
-                return;
-            }
-            
+            if (!content.url) { showCustomAlert('URL de contenido no disponible.'); return; }
             if (content.type === 'live' || content.type === 'movie' || content.type === 'series') {
-                 showSection('live'); // Use live section for all video playback for now
-                 setTimeout(() => { // Ensure section is visible before player actions
-                    const player = document.getElementById('livePlayer');
-                    player.src = content.url;
-                    player.load();
-                    player.play().catch(e => console.warn("Error al intentar reproducir automáticamente:", e));
-                    document.getElementById('currentChannelName').textContent = content.title;
-                    updateProgramInfo(content); // Update info based on what's playing
+                 showSection('live'); 
+                 setTimeout(() => { 
+                    const player = document.getElementById('livePlayer'); player.src = content.url; player.load(); player.play().catch(e => console.warn("Error al intentar reproducir automáticamente:", e)); document.getElementById('currentChannelName').textContent = content.title; updateProgramInfo(content);
                  }, 100);
-
-            } else {
-                 showCustomAlert(`Tipo de contenido '${content.type}' no manejado para reproducción.`);
-            }
+            } else { showCustomAlert(`Tipo de contenido '${content.type}' no manejado para reproducción.`);}
         }
-        
-        // Simple custom alert - replace with a modal if you prefer
         function showCustomAlert(message) {
-            const existingAlert = document.getElementById('customAlert');
-            if (existingAlert) existingAlert.remove();
-
-            const alertBox = document.createElement('div');
-            alertBox.id = 'customAlert';
-            alertBox.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: var(--netflix-red); color: white; padding: 15px 25px; border-radius: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; font-size: 1rem;';
-            alertBox.textContent = message;
-            
-            const closeButton = document.createElement('button');
-            closeButton.textContent = '×';
-            closeButton.style.cssText = 'margin-left: 15px; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;';
-            closeButton.onclick = () => alertBox.remove();
-            
-            alertBox.appendChild(closeButton);
-            document.body.appendChild(alertBox);
-            setTimeout(() => alertBox.remove(), 5000); // Auto-dismiss
+            const existingAlert = document.getElementById('customAlert'); if (existingAlert) existingAlert.remove();
+            const alertBox = document.createElement('div'); alertBox.id = 'customAlert'; alertBox.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background-color: var(--netflix-red); color: white; padding: 15px 25px; border-radius: 5px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; font-size: 1rem;'; alertBox.textContent = message;
+            const closeButton = document.createElement('button'); closeButton.textContent = '×'; closeButton.style.cssText = 'margin-left: 15px; background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer;'; closeButton.onclick = () => alertBox.remove();
+            alertBox.appendChild(closeButton); document.body.appendChild(alertBox); setTimeout(() => alertBox.remove(), 5000);
         }
-
         function selectChannel(element, channel) {
-            // Remove active class from all channels
-            document.querySelectorAll('.channel-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Add active class to selected channel
+            document.querySelectorAll('.channel-item').forEach(item => item.classList.remove('active'));
             if (element) element.classList.add('active');
-            
-            // Update current channel
-            currentChannel = channel;
-            document.getElementById('currentChannelName').textContent = channel.title;
-            
-            // Load channel in player
+            currentChannel = channel; document.getElementById('currentChannelName').textContent = channel.title;
             const player = document.getElementById('livePlayer');
-            
-            if (channel.url) {
-                player.src = channel.url;
-                player.load();
-                player.play().catch(e => console.warn("Error al intentar reproducir automáticamente:", e));
-                updateProgramInfo(channel);
-            } else {
-                showCustomAlert('URL del canal no disponible');
-            }
+            if (channel.url) { player.src = channel.url; player.load(); player.play().catch(e => console.warn("Error al intentar reproducir automáticamente:", e)); updateProgramInfo(channel);} 
+            else { showCustomAlert('URL del canal no disponible');}
         }
-        
         function selectChannelByContent(content) {
-            // Find the channel in the live list, assuming content might be from movies/series but played in live player
             const liveChannelEquivalent = m3uData.live.find(ch => ch.url === content.url && ch.title === content.title);
-            const targetChannel = liveChannelEquivalent || content; // Use content itself if not found in live list (e.g. it's a movie)
-
+            const targetChannel = liveChannelEquivalent || content; 
             const channelIndex = m3uData.live.findIndex(ch => ch.url === targetChannel.url && ch.title === targetChannel.title);
-
-            if (channelIndex !== -1) {
-                const channelElement = document.querySelector(`#channelsList .channel-item[data-channel-index="${channelIndex}"]`);
-                if (channelElement) {
-                    selectChannel(channelElement, m3uData.live[channelIndex]);
-                } else { // Fallback if element not found but channel data exists
-                    selectChannel(null, m3uData.live[channelIndex]);
-                }
-            } else { // If it's a movie/series not in live list, just play it
-                 selectChannel(null, content); // Pass content directly
-            }
+            if (channelIndex !== -1) { const channelElement = document.querySelector(`#channelsList .channel-item[data-channel-index="${channelIndex}"]`); if (channelElement) selectChannel(channelElement, m3uData.live[channelIndex]); else selectChannel(null, m3uData.live[channelIndex]);} 
+            else { selectChannel(null, content); }
         }
-        
-        function updateProgramInfo(channel) { // channel can be any content object
+        function updateProgramInfo(channel) {
             const programInfo = document.getElementById('currentProgramInfo');
-            programInfo.innerHTML = `
-                <h3 class="text-xl font-semibold mb-2 truncate" title="${channel.title}">${channel.title}</h3>
-                <p class="text-gray-300 mb-2 capitalize">${channel.groupTitle && channel.groupTitle !== 'Unknown' ? channel.groupTitle : (channel.type || 'Contenido')}</p>
-                <div class="flex items-center justify-between text-sm text-gray-400">
-                    <span>${channel.type === 'live' ? 'EN VIVO' : (channel.year || '')}</span>
-                    <span>Calidad: Auto</span> </div>
-            `;
+            programInfo.innerHTML = `<h3 class="text-xl font-semibold mb-2 truncate" title="${channel.title}">${channel.title}</h3> <p class="text-gray-300 mb-2 capitalize">${channel.groupTitle && channel.groupTitle !== 'Unknown' ? channel.groupTitle : (channel.type || 'Contenido')}</p> <div class="flex items-center justify-between text-sm text-gray-400"> <span>${channel.type === 'live' ? 'EN VIVO' : (channel.year || '')}</span> <span>Calidad: Auto</span> </div>`;
         }
-        
-        function playFeaturedContent() {
-            if (m3uData.all.length > 0) {
-                const featured = m3uData.all[Math.floor(Math.random() * m3uData.all.length)];
-                playContent(featured);
-            } else {
-                showCustomAlert('No hay contenido disponible para destacar.');
-            }
-        }
+        function playFeaturedContent() { if (m3uData.all.length > 0) { const featured = m3uData.all[Math.floor(Math.random() * m3uData.all.length)]; playContent(featured);} else { showCustomAlert('No hay contenido disponible para destacar.');}}
         
         // Navigation Functions
         function showSection(sectionName) {
-            // Hide all sections
-            document.querySelectorAll('.section').forEach(section => {
-                section.classList.add('hidden');
-            });
-            
-            // Remove active class from all sidebar items
-            document.querySelectorAll('.sidebar-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Show selected section
-            const sectionElement = document.getElementById(sectionName + 'Section');
-            if (sectionElement) {
-                 sectionElement.classList.remove('hidden');
-            } else {
-                console.error(`Sección no encontrada: ${sectionName}Section`);
-                return;
-            }
-            
-            // Add active class to clicked sidebar item
-            // Ensure event.target is valid if called programmatically
-            const sidebarItem = document.querySelector(`.sidebar-item[onclick*="showSection('${sectionName}')"]`);
-            if (sidebarItem) {
-                sidebarItem.classList.add('active');
-            }
-            
+            document.querySelectorAll('.section').forEach(section => section.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+            const sectionElement = document.getElementById(sectionName + 'Section'); if (sectionElement) sectionElement.classList.remove('hidden'); else { console.error(`Sección no encontrada: ${sectionName}Section`); return;}
+            const sidebarItem = document.querySelector(`.sidebar-item[onclick*="showSection('${sectionName}')"]`); if (sidebarItem) sidebarItem.classList.add('active');
             currentSection = sectionName;
         }
         
         // Search and Filter Functions
         function setupSearchAndFilters() {
-            // Movie search
-            const movieSearch = document.getElementById('movieSearch');
-            if (movieSearch) {
-                movieSearch.addEventListener('input', (e) => {
-                    filterContent('movies', e.target.value, 'moviesGrid', m3uData.movies);
-                });
-            }
-            
-            // Series search
-            const seriesSearch = document.getElementById('seriesSearch');
-            if (seriesSearch) {
-                seriesSearch.addEventListener('input', (e) => {
-                    filterContent('series', e.target.value, 'seriesGrid', m3uData.series);
-                });
-            }
-            
-            // Channel search
-            const channelSearch = document.getElementById('channelSearch');
-            if (channelSearch) {
-                channelSearch.addEventListener('input', (e) => {
-                    filterLiveChannels(e.target.value);
-                });
-            }
-            
-            // Genre filters
-            const movieGenreFilter = document.getElementById('movieGenreFilter');
-            if (movieGenreFilter) {
-                movieGenreFilter.addEventListener('change', (e) => {
-                    filterByGenre('movies', e.target.value, 'moviesGrid', m3uData.movies);
-                });
-            }
-            
-            const seriesGenreFilter = document.getElementById('seriesGenreFilter');
-            if (seriesGenreFilter) {
-                seriesGenreFilter.addEventListener('change', (e) => {
-                    filterByGenre('series', e.target.value, 'seriesGrid', m3uData.series);
-                });
-            }
+            const movieSearch = document.getElementById('movieSearch'); if (movieSearch) movieSearch.addEventListener('input', (e) => filterContent('movies', e.target.value, 'moviesGrid', m3uData.movies));
+            const seriesSearch = document.getElementById('seriesSearch'); if (seriesSearch) seriesSearch.addEventListener('input', (e) => filterContent('series', e.target.value, 'seriesGrid', m3uData.series));
+            const channelSearch = document.getElementById('channelSearch'); if (channelSearch) channelSearch.addEventListener('input', (e) => filterLiveChannels(e.target.value));
+            const movieGenreFilter = document.getElementById('movieGenreFilter'); if (movieGenreFilter) movieGenreFilter.addEventListener('change', (e) => filterByGenre('movies', e.target.value, 'moviesGrid', m3uData.movies));
+            const seriesGenreFilter = document.getElementById('seriesGenreFilter'); if (seriesGenreFilter) seriesGenreFilter.addEventListener('change', (e) => filterByGenre('series', e.target.value, 'seriesGrid', m3uData.series));
         }
-        
         function filterContent(type, searchTerm, gridId, items) {
-            const grid = document.getElementById(gridId);
-            if (!grid) return;
-
-            const normalizedSearchTerm = searchTerm.toLowerCase().trim();
-            let filteredItems;
-
-            if (!normalizedSearchTerm) {
-                filteredItems = items;
-            } else {
-                filteredItems = items.filter(item =>
-                    item.title.toLowerCase().includes(normalizedSearchTerm) ||
-                    (item.genre && item.genre.toLowerCase().includes(normalizedSearchTerm)) ||
-                    (item.groupTitle && item.groupTitle.toLowerCase().includes(normalizedSearchTerm))
-                );
-            }
-            
+            const grid = document.getElementById(gridId); if (!grid) return; const normalizedSearchTerm = searchTerm.toLowerCase().trim(); let filteredItems;
+            if (!normalizedSearchTerm) filteredItems = items; else filteredItems = items.filter(item => item.title.toLowerCase().includes(normalizedSearchTerm) || (item.genre && item.genre.toLowerCase().includes(normalizedSearchTerm)) || (item.groupTitle && item.groupTitle.toLowerCase().includes(normalizedSearchTerm)));
             renderContentGrid(grid, filteredItems, type, searchTerm);
         }
-
         function filterByGenre(type, genre, gridId, items) {
-            const grid = document.getElementById(gridId);
-            if (!grid) return;
-
-            let filteredItems;
-            if (!genre) { // "Todos los Géneros"
-                filteredItems = items;
-            } else {
-                filteredItems = items.filter(item => item.genre === genre);
-            }
+            const grid = document.getElementById(gridId); if (!grid) return; let filteredItems;
+            if (!genre) filteredItems = items; else filteredItems = items.filter(item => item.genre === genre);
             renderContentGrid(grid, filteredItems, type, `género "${genre}"`);
         }
-
         function renderContentGrid(gridElement, itemsToRender, itemType, filterTermForMessage) {
             gridElement.innerHTML = '';
-            if (itemsToRender.length > 0) {
-                itemsToRender.forEach(item => {
-                    const card = createContentCard(item);
-                    gridElement.appendChild(card);
-                });
-            } else {
-                const iconClass = itemType === 'movies' ? 'fa-film' : 'fa-tv';
-                gridElement.innerHTML = `<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas ${iconClass} mr-2"></i><span>No se encontraron ${itemType} para "${filterTermForMessage}"</span></div>`;
-            }
+            if (itemsToRender.length > 0) itemsToRender.forEach(item => gridElement.appendChild(createContentCard(item)));
+            else { const iconClass = itemType === 'movies' ? 'fa-film' : 'fa-tv'; gridElement.innerHTML = `<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas ${iconClass} mr-2"></i><span>No se encontraron ${itemType} para "${filterTermForMessage}"</span></div>`;}
         }
-        
         function filterLiveChannels(searchTerm) {
-            const channelsListEl = document.getElementById('channelsList');
-            const channels = m3uData.live;
-            const normalizedSearchTerm = searchTerm.toLowerCase().trim();
-            
-            let filtered;
-            if (!normalizedSearchTerm) {
-                filtered = channels;
-            } else {
-                filtered = channels.filter(channel =>
-                    channel.title.toLowerCase().includes(normalizedSearchTerm) ||
-                    (channel.category && channel.category.toLowerCase().includes(normalizedSearchTerm))
-                );
-            }
-            
+            const channelsListEl = document.getElementById('channelsList'); const channels = m3uData.live; const normalizedSearchTerm = searchTerm.toLowerCase().trim(); let filtered;
+            if (!normalizedSearchTerm) filtered = channels; else filtered = channels.filter(channel => channel.title.toLowerCase().includes(normalizedSearchTerm) || (channel.category && channel.category.toLowerCase().includes(normalizedSearchTerm)));
             channelsListEl.innerHTML = '';
-            if (filtered.length > 0) {
-                filtered.forEach((channel, index) => {
-                    // Important: The index here is from the 'filtered' array, not the original m3uData.live
-                    // For data-channel-index to work correctly with selectChannel, it needs the original index.
-                    // Let's find the original index.
-                    const originalIndex = m3uData.live.findIndex(origChannel => origChannel.url === channel.url && origChannel.title === channel.title);
-                    const channelEl = createChannelItem(channel, originalIndex !== -1 ? originalIndex : index); // Fallback to filtered index if not found (should not happen)
-                    channelsListEl.appendChild(channelEl);
-                });
-            } else {
-                channelsListEl.innerHTML = `<div class="flex items-center justify-center h-48 text-gray-500"><i class="fas fa-search mr-2"></i><span>No se encontraron canales para "${searchTerm}"</span></div>`;
-            }
+            if (filtered.length > 0) { filtered.forEach((channel, index) => { const originalIndex = m3uData.live.findIndex(origChannel => origChannel.url === channel.url && origChannel.title === channel.title); const channelEl = createChannelItem(channel, originalIndex !== -1 ? originalIndex : index); channelsListEl.appendChild(channelEl);});}
+            else { channelsListEl.innerHTML = `<div class="flex items-center justify-center h-48 text-gray-500"><i class="fas fa-search mr-2"></i><span>No se encontraron canales para "${searchTerm}"</span></div>`;}
         }
-        
         function sortMovies(sortBy) {
             let sorted = [...m3uData.movies];
-            
-            switch(sortBy) {
-                case 'name':
-                    sorted.sort((a, b) => a.title.localeCompare(b.title));
-                    break;
-                case 'recent': // Assuming year is relevant
-                    sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0));
-                    break;
-            }
-            
-            renderContentGrid(document.getElementById('moviesGrid'), sorted, 'movies', `ordenado por ${sortBy}`);
-            updateFilterButtons(event.target);
+            switch(sortBy) { case 'name': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'recent': sorted.sort((a, b) => (parseInt(b.year) || 0) - (parseInt(a.year) || 0)); break;}
+            renderContentGrid(document.getElementById('moviesGrid'), sorted, 'movies', `ordenado por ${sortBy}`); updateFilterButtons(event.target);
         }
-        
         function sortSeries(sortBy) {
             let sorted = [...m3uData.series];
-            
-            switch(sortBy) {
-                case 'name':
-                    sorted.sort((a, b) => a.title.localeCompare(b.title));
-                    break;
-                case 'recent': // Assuming season or a release date attribute might be relevant
-                    // If no specific "recent" attribute, sort by name as fallback
-                    sorted.sort((a, b) => (b.season || 0) - (a.season || 0) || a.title.localeCompare(b.title));
-                    break;
-            }
-            
-            renderContentGrid(document.getElementById('seriesGrid'), sorted, 'series', `ordenado por ${sortBy}`);
-            updateFilterButtons(event.target);
+            switch(sortBy) { case 'name': sorted.sort((a, b) => a.title.localeCompare(b.title)); break; case 'recent': sorted.sort((a, b) => (b.season || 0) - (a.season || 0) || a.title.localeCompare(b.title)); break;}
+            renderContentGrid(document.getElementById('seriesGrid'), sorted, 'series', `ordenado por ${sortBy}`); updateFilterButtons(event.target);
         }
-        
-        function updateFilterButtons(activeButton) {
-            // Remove active class from siblings
-            if (activeButton && activeButton.parentElement) {
-                activeButton.parentElement.querySelectorAll('.filter-button').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                // Add active class to clicked button
-                activeButton.classList.add('active');
-            }
-        }
+        function updateFilterButtons(activeButton) { if (activeButton && activeButton.parentElement) { activeButton.parentElement.querySelectorAll('.filter-button').forEach(btn => btn.classList.remove('active')); activeButton.classList.add('active');}}
         
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            if (!isLoggedIn) return;
-            
-            // Do not trigger shortcuts if user is typing in an input field
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
-                return;
-            }
-
-            const sidebarItems = document.querySelectorAll('.sidebar-item');
-            let activeSidebarItem = null;
-            let activeIndex = -1;
-
-            sidebarItems.forEach((item, index) => {
-                if(item.classList.contains('active')) {
-                    activeSidebarItem = item;
-                    activeIndex = index;
-                }
-            });
-            
+            if (!isLoggedIn) return; if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+            const sidebarItems = document.querySelectorAll('.sidebar-item'); let activeSidebarItem = null; let activeIndex = -1;
+            sidebarItems.forEach((item, index) => { if(item.classList.contains('active')) { activeSidebarItem = item; activeIndex = index;}});
             switch(e.key) {
-                case '1': if(sidebarItems[0]) sidebarItems[0].click(); break;
-                case '2': if(sidebarItems[1]) sidebarItems[1].click(); break;
-                case '3': if(sidebarItems[2]) sidebarItems[2].click(); break;
-                case '4': if(sidebarItems[3]) sidebarItems[3].click(); break;
-                // Add more if you have more static sidebar items
-                case 'ArrowUp':
-                    if(activeIndex > 0 && sidebarItems[activeIndex - 1]) {
-                        sidebarItems[activeIndex - 1].click();
-                    }
-                    break;
-                case 'ArrowDown':
-                    if(activeIndex < sidebarItems.length - 1 && sidebarItems[activeIndex + 1]) {
-                        sidebarItems[activeIndex + 1].click();
-                    }
-                    break;
-                case 'Escape':
-                    if (document.fullscreenElement) {
-                        document.exitFullscreen();
-                    }
-                    break;
-                case 'f': // Fullscreen for video player
-                    const player = document.getElementById('livePlayer');
-                    if (player && currentSection === 'live') {
-                        if (!document.fullscreenElement) {
-                            player.requestFullscreen().catch(err => {
-                                console.error(`Error al intentar pantalla completa: ${err.message} (${err.name})`);
-                            });
-                        } else {
-                            document.exitFullscreen();
-                        }
-                    }
-                    break;
+                case '1': if(sidebarItems[0]) sidebarItems[0].click(); break; case '2': if(sidebarItems[1]) sidebarItems[1].click(); break; case '3': if(sidebarItems[2]) sidebarItems[2].click(); break; case '4': if(sidebarItems[3]) sidebarItems[3].click(); break;
+                case 'ArrowUp': if(activeIndex > 0 && sidebarItems[activeIndex - 1]) sidebarItems[activeIndex - 1].click(); break;
+                case 'ArrowDown': if(activeIndex < sidebarItems.length - 1 && sidebarItems[activeIndex + 1]) sidebarItems[activeIndex + 1].click(); break;
+                case 'Escape': if (document.fullscreenElement) document.exitFullscreen(); break;
+                case 'f': const player = document.getElementById('livePlayer'); if (player && currentSection === 'live') { if (!document.fullscreenElement) player.requestFullscreen().catch(err => console.error(`Error al intentar pantalla completa: ${err.message} (${err.name})`)); else document.exitFullscreen();} break;
             }
         });
         
         // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('VPlay IPTV App initialized');
-            setupSearchAndFilters();
-            // Check if there's saved connection info (e.g., in localStorage) to auto-login
-            // For now, always starts at login screen.
-        });
+        document.addEventListener('DOMContentLoaded', function() { console.log('VPlay IPTV App initialized'); setupSearchAndFilters(); });
     </script>
 </body>
 </html>
