@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPlay IPTV - Connect to Your Entertainment</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --netflix-red: #E50914;
+            --netflix-dark: #141414;
+            --netflix-dark-gray: #181818;
+            --netflix-light-gray: #333;
+            --netflix-text: #ffffff;
+            --netflix-text-secondary: #999;
+        }
+        
+        * {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background-color: var(--netflix-dark);
+            color: var(--netflix-text);
+            overflow-x: hidden;
+        }
+        
+        .netflix-bg {
+            background: linear-gradient(135deg, #141414 0%, #000000 100%);
+        }
+        
+        .netflix-card {
+            background: var(--netflix-dark-gray);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .netflix-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .netflix-button {
+            background: var(--netflix-red);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .netflix-button:hover {
+            background: #f40612;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4);
+        }
+        
+        .netflix-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .login-bg {
+            background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800"><defs><pattern id="movieGrid" x="0" y="0" width="200" height="300" patternUnits="userSpaceOnUse"><rect width="180" height="270" x="10" y="15" fill="%23333" rx="8"/><rect width="160" height="90" x="20" y="25" fill="%23555" rx="4"/><rect width="140" height="20" x="30" y="130" fill="%23777" rx="2"/><rect width="100" height="15" x="30" y="160" fill="%23666" rx="2"/></pattern></defs><rect width="100%" height="100%" fill="url(%23movieGrid)"/></svg>');
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .sidebar {
+            background: var(--netflix-dark-gray);
+            width: 80px;
+            transition: width 0.3s ease;
+        }
+        
+        .sidebar:hover {
+            width: 240px;
+        }
+        
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            color: var(--netflix-text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-item:hover,
+        .sidebar-item.active {
+            color: var(--netflix-text);
+            background: var(--netflix-light-gray);
+            border-left-color: var(--netflix-red);
+        }
+        
+        .sidebar-text {
+            margin-left: 16px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .sidebar:hover .sidebar-text {
+            opacity: 1;
+        }
+        
+        .content-carousel {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 20px 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .content-carousel::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .content-card {
+            min-width: 200px;
+            height: 300px;
+            background: var(--netflix-light-gray);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .content-card:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 0;
+        }
+        
+        .video-player {
+            background: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .channel-list {
+            background: var(--netflix-dark-gray);
+            border-radius: 8px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .channel-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--netflix-light-gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .channel-item:hover,
+        .channel-item.active {
+            background: var(--netflix-light-gray);
+        }
+        
+        .epg {
+            background: var(--netflix-dark-gray);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .epg-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--netflix-light-gray);
+        }
+        
+        .input-field {
+            background: var(--netflix-light-gray);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 12px 16px;
+            color: var(--netflix-text);
+            width: 100%;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: var(--netflix-red);
+            box-shadow: 0 0 0 2px rgba(229, 9, 20, 0.2);
+        }
+        
+        .hero-banner {
+            background: linear-gradient(77deg, rgba(0,0,0,0.8) 0%, transparent 85%),
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><rect width="100%" height="100%" fill="%231a1a1a"/><circle cx="600" cy="300" r="200" fill="%23333" opacity="0.5"/><rect x="200" y="150" width="800" height="300" fill="url(%23heroGrad)" rx="20"/><defs><linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:%23444;stop-opacity:1" /><stop offset="100%" style="stop-color:%23222;stop-opacity:1" /></linearGradient></defs></svg>');
+            background-size: cover;
+            background-position: center;
+            height: 400px;
+            display: flex;
+            align-items: center;
+            padding: 0 60px;
+            margin-bottom: 40px;
+        }
+        
+        .filter-bar {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-button {
+            background: var(--netflix-light-gray);
+            color: var(--netflix-text-secondary);
+            border: 1px solid #444;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-button:hover,
+        .filter-button.active {
+            background: var(--netflix-red);
+            color: var(--netflix-text);
+            border-color: var(--netflix-red);
+        }
+
+        .loading-spinner {
+            border: 3px solid #444;
+            border-top: 3px solid var(--netflix-red);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.1);
+            border: 1px solid #dc3545;
+            color: #dc3545;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .success-message {
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid #28a745;
+            color: #28a745;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .sidebar:hover {
+                width: 200px;
+            }
+            
+            .content-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 15px;
+            }
+            
+            .hero-banner {
+                height: 300px;
+                padding: 0 20px;
+            }
+        }
+    </style>
+</head>
+<body class="netflix-bg">
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="loginScreen" class="min-h-screen login-bg flex items-center justify-center">
+            <div class="text-center">
+                <!-- Logo -->
+                <div class="mb-8">
+                    <div class="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-6 shadow-2xl">
+                        <div class="text-white text-4xl font-bold">V</div>
+                    </div>
+                    <h1 class="text-4xl font-bold text-white mb-2">VPlay IPTV</h1>
+                </div>
+                
+                <div id="loginInitial" class="bg-black bg-opacity-70 p-8 rounded-lg backdrop-blur-sm max-w-md mx-auto">
+                    <h2 class="text-2xl font-semibold mb-6 text-center">Conéctate a tu Entretenimiento</h2>
+                    <div class="space-y-4">
+                        <button onclick="showM3UForm()" class="netflix-button w-full py-4 text-lg">
+                            <i class="fas fa-list mr-2"></i>M3U Playlist
+                        </button>
+                        <button onclick="showXtreamForm()" class="netflix-button w-full py-4 text-lg">
+                            <i class="fas fa-stream mr-2"></i>Xtream Codes
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="m3uForm" class="bg-black bg-opacity-70 p-8 rounded-lg backdrop-blur-sm max-w-md mx-auto hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-center">M3U Playlist</h2>
+                    <form onsubmit="connectM3U(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Nombre de la Conexión</label>
+                                <input type="text" id="m3uName" class="input-field" placeholder="Mi IPTV" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">URL de la Playlist M3U</label>
+                                <input type="url" id="m3uUrl" class="input-field" placeholder="http://ejemplo.com/playlist.m3u" required>
+                            </div>
+                            <div id="m3uError" class="error-message hidden"></div>
+                            <div class="flex space-x-4">
+                                <button type="button" onclick="backToInitial()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded flex-1">
+                                    <i class="fas fa-arrow-left mr-2"></i>Atrás
+                                </button>
+                                <button type="submit" id="m3uConnectBtn" class="netflix-button flex-1">
+                                    <i class="fas fa-link mr-2"></i>Conectar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <div id="xtreamForm" class="bg-black bg-opacity-70 p-8 rounded-lg backdrop-blur-sm max-w-md mx-auto hidden">
+                    <h2 class="text-2xl font-semibold mb-6 text-center">Xtream Codes</h2>
+                    <form onsubmit="connectXtream(event)">
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Nombre de la Conexión</label>
+                                <input type="text" id="xtreamName" class="input-field" placeholder="Mi IPTV" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Servidor</label>
+                                <input type="url" id="xtreamServer" class="input-field" placeholder="http://servidor.com:8080" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Usuario</label>
+                                <input type="text" id="xtreamUser" class="input-field" placeholder="usuario" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Contraseña</label>
+                                <input type="password" id="xtreamPass" class="input-field" placeholder="contraseña" required>
+                            </div>
+                            <div id="xtreamError" class="error-message hidden"></div>
+                            <div class="flex space-x-4">
+                                <button type="button" onclick="backToInitial()" class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded flex-1">
+                                    <i class="fas fa-arrow-left mr-2"></i>Atrás
+                                </button>
+                                <button type="submit" id="xtreamConnectBtn" class="netflix-button flex-1">
+                                    <i class="fas fa-link mr-2"></i>Conectar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main App -->
+        <div id="mainApp" class="hidden">
+            <!-- Sidebar -->
+            <div class="sidebar fixed left-0 top-0 h-full z-50">
+                <div class="p-4 border-b border-gray-700">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">V</span>
+                        </div>
+                        <span class="sidebar-text text-lg font-bold ml-3">VPlay IPTV</span>
+                    </div>
+                </div>
+                
+                <nav class="mt-4">
+                    <div class="sidebar-item active" onclick="showSection('home')">
+                        <i class="fas fa-home text-xl"></i>
+                        <span class="sidebar-text">Inicio</span>
+                    </div>
+                    <div class="sidebar-item" onclick="showSection('movies')">
+                        <i class="fas fa-film text-xl"></i>
+                        <span class="sidebar-text">Películas</span>
+                    </div>
+                    <div class="sidebar-item" onclick="showSection('series')">
+                        <i class="fas fa-tv text-xl"></i>
+                        <span class="sidebar-text">Series</span>
+                    </div>
+                    <div class="sidebar-item" onclick="showSection('live')">
+                        <i class="fas fa-broadcast-tower text-xl"></i>
+                        <span class="sidebar-text">TV en Vivo</span>
+                    </div>
+                </nav>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="ml-20 min-h-screen">
+                <!-- Home Section -->
+                <div id="homeSection" class="section">
+                    <div class="hero-banner">
+                        <div>
+                            <h1 class="text-5xl font-bold mb-4" id="heroTitle">Bienvenido a VPlay IPTV</h1>
+                            <p class="text-lg text-gray-300 mb-6 max-w-xl" id="heroDescription">Disfruta de tu contenido favorito con la mejor calidad de streaming. Películas, series y TV en vivo al alcance de tus manos.</p>
+                            <div class="flex space-x-4">
+                                <button class="netflix-button px-8 py-3 text-lg" onclick="playFeaturedContent()">
+                                    <i class="fas fa-play mr-2"></i>Reproducir
+                                </button>
+                                <button class="bg-gray-600 bg-opacity-70 hover:bg-opacity-90 text-white px-8 py-3 rounded text-lg">
+                                    <i class="fas fa-info-circle mr-2"></i>Más Información
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="px-12">
+                        <section class="mb-12">
+                            <h2 class="text-2xl font-bold mb-6">Películas Recientes</h2>
+                            <div class="content-carousel" id="moviesCarousel">
+                                <div class="flex items-center justify-center min-w-full h-48 text-gray-500">
+                                    <i class="fas fa-film mr-2"></i>
+                                    <span>Cargando películas...</span>
+                                </div>
+                            </div>
+                        </section>
+                        
+                        <section class="mb-12">
+                            <h2 class="text-2xl font-bold mb-6">Series Disponibles</h2>
+                            <div class="content-carousel" id="seriesCarousel">
+                                <div class="flex items-center justify-center min-w-full h-48 text-gray-500">
+                                    <i class="fas fa-tv mr-2"></i>
+                                    <span>Cargando series...</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                
+                <!-- Movies Section -->
+                <div id="moviesSection" class="section hidden px-12 py-8">
+                    <h1 class="text-4xl font-bold mb-8">Películas</h1>
+                    
+                    <div class="filter-bar">
+                        <div class="flex items-center space-x-4">
+                            <select class="input-field w-auto" id="movieGenreFilter">
+                                <option value="">Todos los Géneros</option>
+                            </select>
+                            <input type="text" placeholder="Buscar películas..." class="input-field w-64" id="movieSearch">
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="filter-button active" onclick="sortMovies('name')">A-Z</button>
+                            <button class="filter-button" onclick="sortMovies('recent')">Más Recientes</button>
+                        </div>
+                    </div>
+                    
+                    <div class="content-grid" id="moviesGrid">
+                        <div class="flex items-center justify-center col-span-full h-48 text-gray-500">
+                            <i class="fas fa-film mr-2"></i>
+                            <span>No hay películas disponibles</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Series Section -->
+                <div id="seriesSection" class="section hidden px-12 py-8">
+                    <h1 class="text-4xl font-bold mb-8">Series</h1>
+                    
+                    <div class="filter-bar">
+                        <div class="flex items-center space-x-4">
+                            <select class="input-field w-auto" id="seriesGenreFilter">
+                                <option value="">Todos los Géneros</option>
+                            </select>
+                            <input type="text" placeholder="Buscar series..." class="input-field w-64" id="seriesSearch">
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="filter-button active" onclick="sortSeries('name')">A-Z</button>
+                            <button class="filter-button" onclick="sortSeries('recent')">Más Recientes</button>
+                        </div>
+                    </div>
+                    
+                    <div class="content-grid" id="seriesGrid">
+                        <div class="flex items-center justify-center col-span-full h-48 text-gray-500">
+                            <i class="fas fa-tv mr-2"></i>
+                            <span>No hay series disponibles</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live TV Section -->
+                <div id="liveSection" class="section hidden px-12 py-8">
+                    <h1 class="text-4xl font-bold mb-8">TV en Vivo</h1>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <!-- Video Player -->
+                        <div class="lg:col-span-3">
+                            <div class="video-player aspect-video">
+                                <video id="livePlayer" class="w-full h-full" controls playsinline webkit-playsinline crossorigin="anonymous">
+                                    Tu navegador no soporta video HTML5.
+                                </video>
+                                <div class="absolute top-4 left-4 bg-black bg-opacity-70 px-3 py-1 rounded">
+                                    <span class="text-red-500">● EN VIVO</span>
+                                </div>
+                                <div class="absolute top-4 right-4 bg-black bg-opacity-70 px-3 py-1 rounded">
+                                    <span id="currentChannelName">Selecciona un canal</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Program Info -->
+                            <div class="mt-4 p-4 bg-gray-800 rounded-lg" id="currentProgramInfo">
+                                <h3 class="text-xl font-semibold mb-2">Información del Canal</h3>
+                                <p class="text-gray-300 mb-2">Selecciona un canal de la lista para comenzar a ver TV en vivo.</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Channel List -->
+                        <div class="lg:col-span-1">
+                            <div class="channel-list">
+                                <div class="p-4 border-b border-gray-700">
+                                    <h3 class="font-semibold">Canales</h3>
+                                    <input type="text" placeholder="Buscar canales..." class="input-field mt-2 text-sm" id="channelSearch">
+                                </div>
+                                
+                                <div id="channelsList">
+                                    <div class="flex items-center justify-center h-48 text-gray-500">
+                                        <i class="fas fa-broadcast-tower mr-2"></i>
+                                        <span>No hay canales disponibles</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // App State Management
+        let currentSection = 'home';
+        let isLoggedIn = false;
+        let m3uData = {
+            movies: [],
+            series: [],
+            live: [],
+            all: []
+        };
+        let currentChannel = null;
+        
+        // M3U Parser Class
+        class M3UParser {
+            static parse(content) {
+                const lines = content.split('\n').map(line => line.trim()).filter(line => line);
+                const channels = [];
+                let currentChannel = null;
+                
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    
+                    if (line.startsWith('#EXTINF:')) {
+                        // Parse EXTINF line
+                        const extinf = line.substring(8); // Remove '#EXTINF:'
+                        const parts = extinf.split(',');
+                        const duration = parts[0].trim();
+                        const title = parts.slice(1).join(',').trim();
+                        
+                        // Extract attributes from the EXTINF line
+                        const attributes = this.extractAttributes(extinf);
+                        
+                        currentChannel = {
+                            title: title || 'Unknown',
+                            duration: duration,
+                            attributes: attributes,
+                            tvgId: attributes['tvg-id'] || '',
+                            tvgName: attributes['tvg-name'] || title,
+                            tvgLogo: attributes['tvg-logo'] || '',
+                            groupTitle: attributes['group-title'] || 'Unknown',
+                            url: null
+                        };
+                    } else if (line && !line.startsWith('#') && currentChannel) {
+                        // This is the URL line
+                        currentChannel.url = line;
+                        channels.push({...currentChannel});
+                        currentChannel = null;
+                    }
+                }
+                
+                return channels;
+            }
+            
+            static extractAttributes(extinf) {
+                const attributes = {};
+                const regex = /(\w+(?:-\w+)*)="([^"]*)"/g;
+                let match;
+                
+                while ((match = regex.exec(extinf)) !== null) {
+                    attributes[match[1]] = match[2];
+                }
+                
+                return attributes;
+            }
+            
+            static categorizeChannels(channels) {
+                const movies = [];
+                const series = [];
+                const live = [];
+                
+                channels.forEach(channel => {
+                    const title = channel.title.toLowerCase();
+                    const group = channel.groupTitle.toLowerCase();
+                    
+                    // Movie detection patterns
+                    if (this.isMovie(title, group)) {
+                        movies.push({
+                            ...channel,
+                            type: 'movie',
+                            year: this.extractYear(title),
+                            genre: this.extractGenre(group)
+                        });
+                    }
+                    // Series detection patterns
+                    else if (this.isSeries(title, group)) {
+                        series.push({
+                            ...channel,
+                            type: 'series',
+                            season: this.extractSeason(title),
+                            episode: this.extractEpisode(title),
+                            genre: this.extractGenre(group)
+                        });
+                    }
+                    // Live TV (default)
+                    else {
+                        live.push({
+                            ...channel,
+                            type: 'live',
+                            category: group
+                        });
+                    }
+                });
+                
+                return { movies, series, live };
+            }
+            
+            static isMovie(title, group) {
+                const movieKeywords = ['movie', 'película', 'film', 'cinema', 'cine'];
+                const moviePatterns = [
+                    /\(\d{4}\)/,  // Year in parentheses
+                    /\[\d{4}\]/,  // Year in brackets
+                    /\b\d{4}\b/   // Year standalone
+                ];
+                
+                return movieKeywords.some(keyword => 
+                    title.includes(keyword) || group.includes(keyword)
+                ) || moviePatterns.some(pattern => pattern.test(title));
+            }
+            
+            static isSeries(title, group) {
+                const seriesKeywords = ['series', 'serie', 'tv', 'show', 'temporada', 'season', 'episode', 'episodio'];
+                const seriesPatterns = [
+                    /s\d+e\d+/i,    // S01E01 pattern
+                    /\bep?\s?\d+/i,  // Ep 01 pattern
+                    /season\s?\d+/i, // Season pattern
+                    /temporada\s?\d+/i // Spanish season
+                ];
+                
+                return seriesKeywords.some(keyword => 
+                    title.includes(keyword) || group.includes(keyword)
+                ) || seriesPatterns.some(pattern => pattern.test(title));
+            }
+            
+            static extractYear(title) {
+                const yearMatch = title.match(/\b(19|20)\d{2}\b/);
+                return yearMatch ? yearMatch[0] : null;
+            }
+            
+            static extractSeason(title) {
+                const seasonMatch = title.match(/s(\d+)/i) || title.match(/season\s?(\d+)/i) || title.match(/temporada\s?(\d+)/i);
+                return seasonMatch ? parseInt(seasonMatch[1]) : null;
+            }
+            
+            static extractEpisode(title) {
+                const episodeMatch = title.match(/e(\d+)/i) || title.match(/ep\s?(\d+)/i) || title.match(/episodio\s?(\d+)/i);
+                return episodeMatch ? parseInt(episodeMatch[1]) : null;
+            }
+            
+            static extractGenre(group) {
+                const genres = {
+                    'action': ['action', 'accion', 'adventure'],
+                    'comedy': ['comedy', 'comedia', 'humor'],
+                    'drama': ['drama', 'drama'],
+                    'horror': ['horror', 'terror', 'miedo'],
+                    'thriller': ['thriller', 'suspense'],
+                    'romance': ['romance', 'romantic'],
+                    'sci-fi': ['sci-fi', 'science', 'fiction', 'ciencia'],
+                    'documentary': ['documentary', 'documental'],
+                    'sports': ['sports', 'deportes', 'sport'],
+                    'news': ['news', 'noticias', 'noticia'],
+                    'kids': ['kids', 'children', 'infantil', 'niños']
+                };
+                
+                for (const [genre, keywords] of Object.entries(genres)) {
+                    if (keywords.some(keyword => group.includes(keyword))) {
+                        return genre;
+                    }
+                }
+                
+                return 'general';
+            }
+        }
+        
+        // CORS Proxy for M3U fetching
+        class CORSProxy {
+            static async fetchM3U(url) {
+                const proxyUrls = [
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+                    `https://cors-anywhere.herokuapp.com/${url}`,
+                    url // Direct attempt
+                ];
+                
+                for (const proxyUrl of proxyUrls) {
+                    try {
+                        const response = await fetch(proxyUrl, {
+                            method: 'GET',
+                            headers: {
+                                'Accept': 'application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            return await response.text();
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to fetch via ${proxyUrl}:`, error);
+                        continue;
+                    }
+                }
+                
+                throw new Error('Unable to fetch M3U playlist. Please check the URL and try again.');
+            }
+        }
+        
+        // Login Functions
+        function showM3UForm() {
+            document.getElementById('loginInitial').classList.add('hidden');
+            document.getElementById('m3uForm').classList.remove('hidden');
+        }
+        
+        function showXtreamForm() {
+            document.getElementById('loginInitial').classList.add('hidden');
+            document.getElementById('xtreamForm').classList.remove('hidden');
+        }
+        
+        function backToInitial() {
+            document.getElementById('loginInitial').classList.remove('hidden');
+            document.getElementById('m3uForm').classList.add('hidden');
+            document.getElementById('xtreamForm').classList.add('hidden');
+            clearErrors();
+        }
+        
+        function clearErrors() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.classList.add('hidden');
+                el.textContent = '';
+            });
+        }
+        
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+        
+        async function connectM3U(event) {
+            event.preventDefault();
+            clearErrors();
+            
+            const name = document.getElementById('m3uName').value.trim();
+            const url = document.getElementById('m3uUrl').value.trim();
+            const connectBtn = document.getElementById('m3uConnectBtn');
+            
+            if (!name || !url) {
+                showError('m3uError', 'Por favor, completa todos los campos.');
+                return;
+            }
+            
+            // Validate URL format
+            try {
+                new URL(url);
+            } catch (e) {
+                showError('m3uError', 'Por favor, ingresa una URL válida.');
+                return;
+            }
+            
+            // Show loading state
+            connectBtn.innerHTML = '<div class="loading-spinner"></div>Conectando...';
+            connectBtn.disabled = true;
+            
+            try {
+                // Fetch and parse M3U
+                const m3uContent = await CORSProxy.fetchM3U(url);
+                
+                if (!m3uContent || !m3uContent.includes('#EXTINF')) {
+                    throw new Error('El archivo no parece ser una playlist M3U válida.');
+                }
+                
+                const channels = M3UParser.parse(m3uContent);
+                
+                if (channels.length === 0) {
+                    throw new Error('No se encontraron canales en la playlist.');
+                }
+                
+                const categorized = M3UParser.categorizeChannels(channels);
+                
+                // Store data globally
+                m3uData = {
+                    ...categorized,
+                    all: channels,
+                    name: name,
+                    url: url
+                };
+                
+                // Success - transition to main app
+                isLoggedIn = true;
+                document.getElementById('loginScreen').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                
+                // Initialize content
+                initializeContent();
+                
+            } catch (error) {
+                console.error('M3U Connection Error:', error);
+                showError('m3uError', error.message);
+            } finally {
+                // Reset button
+                connectBtn.innerHTML = '<i class="fas fa-link mr-2"></i>Conectar';
+                connectBtn.disabled = false;
+            }
+        }
+        
+        async function connectXtream(event) {
+            event.preventDefault();
+            clearErrors();
+            
+            const name = document.getElementById('xtreamName').value.trim();
+            const server = document.getElementById('xtreamServer').value.trim();
+            const user = document.getElementById('xtreamUser').value.trim();
+            const pass = document.getElementById('xtreamPass').value.trim();
+            const connectBtn = document.getElementById('xtreamConnectBtn');
+            
+            if (!name || !server || !user || !pass) {
+                showError('xtreamError', 'Por favor, completa todos los campos.');
+                return;
+            }
+            
+            // Show loading state
+            connectBtn.innerHTML = '<div class="loading-spinner"></div>Conectando...';
+            connectBtn.disabled = true;
+            
+            try {
+                // Build Xtream API URLs
+                const baseUrl = server.endsWith('/') ? server.slice(0, -1) : server;
+                const authParams = `username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+                
+                // Test connection with player_api.php
+                const testUrl = `${baseUrl}/player_api.php?${authParams}`;
+                const response = await fetch(testUrl);
+                
+                if (!response.ok) {
+                    throw new Error('No se pudo conectar al servidor Xtream Codes.');
+                }
+                
+                const authData = await response.json();
+                
+                if (authData.user_info && authData.user_info.auth === 1) {
+                    // Authentication successful
+                    // For demo purposes, we'll create sample data
+                    // In a real implementation, you would fetch the actual channel lists
+                    
+                    m3uData = {
+                        movies: [],
+                        series: [],
+                        live: [],
+                        all: [],
+                        name: name,
+                        server: baseUrl,
+                        auth: authParams
+                    };
+                    
+                    // Success - transition to main app
+                    isLoggedIn = true;
+                    document.getElementById('loginScreen').classList.add('hidden');
+                    document.getElementById('mainApp').classList.remove('hidden');
+                    
+                    initializeContent();
+                } else {
+                    throw new Error('Credenciales incorrectas. Verifica tu usuario y contraseña.');
+                }
+                
+            } catch (error) {
+                console.error('Xtream Connection Error:', error);
+                showError('xtreamError', error.message);
+            } finally {
+                // Reset button
+                connectBtn.innerHTML = '<i class="fas fa-link mr-2"></i>Conectar';
+                connectBtn.disabled = false;
+            }
+        }
+        
+        // Content Initialization
+        function initializeContent() {
+            updateHomeSection();
+            updateMoviesSection();
+            updateSeriesSection();
+            updateLiveSection();
+        }
+        
+        function updateHomeSection() {
+            const moviesCarousel = document.getElementById('moviesCarousel');
+            const seriesCarousel = document.getElementById('seriesCarousel');
+            
+            // Update movies carousel
+            if (m3uData.movies.length > 0) {
+                moviesCarousel.innerHTML = '';
+                m3uData.movies.slice(0, 10).forEach(movie => {
+                    const card = createContentCard(movie);
+                    moviesCarousel.appendChild(card);
+                });
+            } else {
+                moviesCarousel.innerHTML = '<div class="flex items-center justify-center min-w-full h-48 text-gray-500"><i class="fas fa-film mr-2"></i><span>No hay películas disponibles</span></div>';
+            }
+            
+            // Update series carousel
+            if (m3uData.series.length > 0) {
+                seriesCarousel.innerHTML = '';
+                m3uData.series.slice(0, 10).forEach(series => {
+                    const card = createContentCard(series);
+                    seriesCarousel.appendChild(card);
+                });
+            } else {
+                seriesCarousel.innerHTML = '<div class="flex items-center justify-center min-w-full h-48 text-gray-500"><i class="fas fa-tv mr-2"></i><span>No hay series disponibles</span></div>';
+            }
+            
+            // Update hero section with featured content
+            if (m3uData.all.length > 0) {
+                const featured = m3uData.all[0];
+                document.getElementById('heroTitle').textContent = featured.title;
+                document.getElementById('heroDescription').textContent = `Disfruta de ${featured.title} y mucho más contenido en VPlay IPTV.`;
+            }
+        }
+        
+        function updateMoviesSection() {
+            const moviesGrid = document.getElementById('moviesGrid');
+            
+            if (m3uData.movies.length > 0) {
+                moviesGrid.innerHTML = '';
+                m3uData.movies.forEach(movie => {
+                    const card = createContentCard(movie);
+                    moviesGrid.appendChild(card);
+                });
+                
+                // Update genre filter
+                const genres = [...new Set(m3uData.movies.map(m => m.genre).filter(g => g))];
+                updateGenreFilter('movieGenreFilter', genres);
+            } else {
+                moviesGrid.innerHTML = '<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-film mr-2"></i><span>No hay películas disponibles</span></div>';
+            }
+        }
+        
+        function updateSeriesSection() {
+            const seriesGrid = document.getElementById('seriesGrid');
+            
+            if (m3uData.series.length > 0) {
+                seriesGrid.innerHTML = '';
+                m3uData.series.forEach(series => {
+                    const card = createContentCard(series);
+                    seriesGrid.appendChild(card);
+                });
+                
+                // Update genre filter
+                const genres = [...new Set(m3uData.series.map(s => s.genre).filter(g => g))];
+                updateGenreFilter('seriesGenreFilter', genres);
+            } else {
+                seriesGrid.innerHTML = '<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-tv mr-2"></i><span>No hay series disponibles</span></div>';
+            }
+        }
+        
+        function updateLiveSection() {
+            const channelsList = document.getElementById('channelsList');
+            
+            if (m3uData.live.length > 0) {
+                channelsList.innerHTML = '';
+                m3uData.live.forEach((channel, index) => {
+                    const channelEl = createChannelItem(channel, index);
+                    channelsList.appendChild(channelEl);
+                });
+            } else {
+                channelsList.innerHTML = '<div class="flex items-center justify-center h-48 text-gray-500"><i class="fas fa-broadcast-tower mr-2"></i><span>No hay canales disponibles</span></div>';
+            }
+        }
+        
+        function createContentCard(content) {
+            const card = document.createElement('div');
+            card.className = 'content-card netflix-card cursor-pointer';
+            
+            // Set background image if logo is available
+            if (content.tvgLogo) {
+                card.style.backgroundImage = `url(${content.tvgLogo})`;
+            }
+            
+            card.innerHTML = `
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                <div class="absolute bottom-4 left-4">
+                    <h3 class="font-semibold text-sm mb-1">${content.title}</h3>
+                    ${content.year ? `<p class="text-xs text-gray-300">${content.year}</p>` : ''}
+                    ${content.genre ? `<p class="text-xs text-gray-400">${content.genre}</p>` : ''}
+                    ${content.groupTitle && content.groupTitle !== 'Unknown' ? `<p class="text-xs text-gray-500">${content.groupTitle}</p>` : ''}
+                </div>
+            `;
+            
+            card.addEventListener('click', () => playContent(content));
+            
+            return card;
+        }
+        
+        function createChannelItem(channel, index) {
+            const channelEl = document.createElement('div');
+            channelEl.className = 'channel-item';
+            channelEl.dataset.channelIndex = index;
+            
+            const channelNumber = index + 1;
+            const categoryColor = getCategoryColor(channel.category);
+            
+            channelEl.innerHTML = `
+                <div class="w-8 h-8 ${categoryColor} rounded mr-3 flex items-center justify-center">
+                    <span class="text-white text-xs font-bold">${channelNumber}</span>
+                </div>
+                <div class="flex-1">
+                    <div class="font-medium text-sm">${channel.title}</div>
+                    <div class="text-xs text-gray-400">${channel.category || 'General'}</div>
+                </div>
+            `;
+            
+            channelEl.addEventListener('click', () => selectChannel(channelEl, channel));
+            
+            return channelEl;
+        }
+        
+        function getCategoryColor(category) {
+            const colors = {
+                'sports': 'bg-blue-600',
+                'news': 'bg-red-600',
+                'movies': 'bg-purple-600',
+                'kids': 'bg-green-600',
+                'music': 'bg-pink-600',
+                'documentary': 'bg-yellow-600',
+                'entertainment': 'bg-indigo-600'
+            };
+            
+            return colors[category?.toLowerCase()] || 'bg-gray-600';
+        }
+        
+        function updateGenreFilter(filterId, genres) {
+            const filter = document.getElementById(filterId);
+            filter.innerHTML = '<option value="">Todos los Géneros</option>';
+            
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
+                filter.appendChild(option);
+            });
+        }
+        
+        // Media Player Functions
+        function playContent(content) {
+            if (!content.url) {
+                alert('URL de contenido no disponible');
+                return;
+            }
+            
+            // For demo purposes, we'll show an alert
+            // In a real implementation, you would open a video player
+            if (confirm(`¿Reproducir "${content.title}"?`)) {
+                // Switch to live section if it's a live channel
+                if (content.type === 'live') {
+                    showSection('live');
+                    setTimeout(() => selectChannelByContent(content), 100);
+                } else {
+                    // For movies/series, you could open a modal player or redirect
+                    openVideoPlayer(content);
+                }
+            }
+        }
+        
+        function openVideoPlayer(content) {
+            const player = document.getElementById('livePlayer');
+            player.src = content.url;
+            player.load();
+            
+            // Update current info
+            document.getElementById('currentChannelName').textContent = content.title;
+            
+            // Show live section
+            showSection('live');
+        }
+        
+        function selectChannel(element, channel) {
+            // Remove active class from all channels
+            document.querySelectorAll('.channel-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Add active class to selected channel
+            element.classList.add('active');
+            
+            // Update current channel
+            currentChannel = channel;
+            document.getElementById('currentChannelName').textContent = channel.title;
+            
+            // Load channel in player
+            const player = document.getElementById('livePlayer');
+            
+            if (channel.url) {
+                player.src = channel.url;
+                player.load();
+                
+                // Update program info
+                updateProgramInfo(channel);
+            } else {
+                alert('URL del canal no disponible');
+            }
+        }
+        
+        function selectChannelByContent(content) {
+            const channelIndex = m3uData.live.findIndex(ch => ch.url === content.url);
+            if (channelIndex !== -1) {
+                const channelElement = document.querySelector(`[data-channel-index="${channelIndex}"]`);
+                if (channelElement) {
+                    selectChannel(channelElement, content);
+                }
+            }
+        }
+        
+        function updateProgramInfo(channel) {
+            const programInfo = document.getElementById('currentProgramInfo');
+            programInfo.innerHTML = `
+                <h3 class="text-xl font-semibold mb-2">${channel.title}</h3>
+                <p class="text-gray-300 mb-2">${channel.groupTitle || 'Canal en vivo'}</p>
+                <div class="flex items-center justify-between text-sm text-gray-400">
+                    <span>EN VIVO</span>
+                    <span>Calidad: Auto</span>
+                </div>
+            `;
+        }
+        
+        function playFeaturedContent() {
+            if (m3uData.all.length > 0) {
+                playContent(m3uData.all[0]);
+            } else {
+                alert('No hay contenido disponible');
+            }
+        }
+        
+        // Navigation Functions
+        function showSection(sectionName) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // Remove active class from all sidebar items
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected section
+            document.getElementById(sectionName + 'Section').classList.remove('hidden');
+            
+            // Add active class to clicked sidebar item
+            event.target.closest('.sidebar-item').classList.add('active');
+            
+            currentSection = sectionName;
+        }
+        
+        // Search and Filter Functions
+        function setupSearchAndFilters() {
+            // Movie search
+            const movieSearch = document.getElementById('movieSearch');
+            if (movieSearch) {
+                movieSearch.addEventListener('input', (e) => {
+                    filterContent('movies', e.target.value);
+                });
+            }
+            
+            // Series search
+            const seriesSearch = document.getElementById('seriesSearch');
+            if (seriesSearch) {
+                seriesSearch.addEventListener('input', (e) => {
+                    filterContent('series', e.target.value);
+                });
+            }
+            
+            // Channel search
+            const channelSearch = document.getElementById('channelSearch');
+            if (channelSearch) {
+                channelSearch.addEventListener('input', (e) => {
+                    filterChannels(e.target.value);
+                });
+            }
+            
+            // Genre filters
+            const movieGenreFilter = document.getElementById('movieGenreFilter');
+            if (movieGenreFilter) {
+                movieGenreFilter.addEventListener('change', (e) => {
+                    filterByGenre('movies', e.target.value);
+                });
+            }
+            
+            const seriesGenreFilter = document.getElementById('seriesGenreFilter');
+            if (seriesGenreFilter) {
+                seriesGenreFilter.addEventListener('change', (e) => {
+                    filterByGenre('series', e.target.value);
+                });
+            }
+        }
+        
+        function filterContent(type, searchTerm) {
+            const gridId = type === 'movies' ? 'moviesGrid' : 'seriesGrid';
+            const grid = document.getElementById(gridId);
+            const items = m3uData[type];
+            
+            if (!searchTerm) {
+                // Show all items
+                grid.innerHTML = '';
+                items.forEach(item => {
+                    const card = createContentCard(item);
+                    grid.appendChild(card);
+                });
+                return;
+            }
+            
+            const filtered = items.filter(item =>
+                item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (item.genre && item.genre.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+            
+            grid.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach(item => {
+                    const card = createContentCard(item);
+                    grid.appendChild(card);
+                });
+            } else {
+                grid.innerHTML = `<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-search mr-2"></i><span>No se encontraron resultados para "${searchTerm}"</span></div>`;
+            }
+        }
+        
+        function filterByGenre(type, genre) {
+            const gridId = type === 'movies' ? 'moviesGrid' : 'seriesGrid';
+            const grid = document.getElementById(gridId);
+            const items = m3uData[type];
+            
+            if (!genre) {
+                // Show all items
+                grid.innerHTML = '';
+                items.forEach(item => {
+                    const card = createContentCard(item);
+                    grid.appendChild(card);
+                });
+                return;
+            }
+            
+            const filtered = items.filter(item => item.genre === genre);
+            
+            grid.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach(item => {
+                    const card = createContentCard(item);
+                    grid.appendChild(card);
+                });
+            } else {
+                grid.innerHTML = `<div class="flex items-center justify-center col-span-full h-48 text-gray-500"><i class="fas fa-filter mr-2"></i><span>No hay contenido en el género "${genre}"</span></div>`;
+            }
+        }
+        
+        function filterChannels(searchTerm) {
+            const channelsList = document.getElementById('channelsList');
+            const channels = m3uData.live;
+            
+            if (!searchTerm) {
+                // Show all channels
+                channelsList.innerHTML = '';
+                channels.forEach((channel, index) => {
+                    const channelEl = createChannelItem(channel, index);
+                    channelsList.appendChild(channelEl);
+                });
+                return;
+            }
+            
+            const filtered = channels.filter(channel =>
+                channel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (channel.category && channel.category.toLowerCase().includes(searchTerm.toLowerCase()))
+            );
+            
+            channelsList.innerHTML = '';
+            if (filtered.length > 0) {
+                filtered.forEach((channel, index) => {
+                    const channelEl = createChannelItem(channel, index);
+                    channelsList.appendChild(channelEl);
+                });
+            } else {
+                channelsList.innerHTML = `<div class="flex items-center justify-center h-48 text-gray-500"><i class="fas fa-search mr-2"></i><span>No se encontraron canales para "${searchTerm}"</span></div>`;
+            }
+        }
+        
+        function sortMovies(sortBy) {
+            let sorted = [...m3uData.movies];
+            
+            switch(sortBy) {
+                case 'name':
+                    sorted.sort((a, b) => a.title.localeCompare(b.title));
+                    break;
+                case 'recent':
+                    sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
+                    break;
+            }
+            
+            const grid = document.getElementById('moviesGrid');
+            grid.innerHTML = '';
+            sorted.forEach(movie => {
+                const card = createContentCard(movie);
+                grid.appendChild(card);
+            });
+            
+            // Update active filter button
+            updateFilterButtons(event.target);
+        }
+        
+        function sortSeries(sortBy) {
+            let sorted = [...m3uData.series];
+            
+            switch(sortBy) {
+                case 'name':
+                    sorted.sort((a, b) => a.title.localeCompare(b.title));
+                    break;
+                case 'recent':
+                    sorted.sort((a, b) => (b.season || 0) - (a.season || 0));
+                    break;
+            }
+            
+            const grid = document.getElementById('seriesGrid');
+            grid.innerHTML = '';
+            sorted.forEach(series => {
+                const card = createContentCard(series);
+                grid.appendChild(card);
+            });
+            
+            // Update active filter button
+            updateFilterButtons(event.target);
+        }
+        
+        function updateFilterButtons(activeButton) {
+            // Remove active class from siblings
+            activeButton.parentElement.querySelectorAll('.filter-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            activeButton.classList.add('active');
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (!isLoggedIn) return;
+            
+            switch(e.key) {
+                case '1':
+                    showSection('home');
+                    break;
+                case '2':
+                    showSection('movies');
+                    break;
+                case '3':
+                    showSection('series');
+                    break;
+                case '4':
+                    showSection('live');
+                    break;
+                case 'Escape':
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    }
+                    break;
+            }
+        });
+        
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('VPlay IPTV App initialized with real M3U support');
+            setupSearchAndFilters();
+        });
+    </script>
+</body>
+</html>
