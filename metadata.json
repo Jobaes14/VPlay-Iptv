@@ -1,0 +1,5 @@
+{
+  "name": "VPlay IPTV",
+  "description": "A web application for IPTV playback with a modern, user-friendly interface, inspired by Netflix and TiviMate.",
+  "requestFramePermissions": []
+}
