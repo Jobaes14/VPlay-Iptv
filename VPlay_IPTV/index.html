@@ -1,0 +1,83 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPlay IPTV - SPA</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      background-color: #141414;
+      color: white;
+      font-family: 'Be Vietnam Pro', 'Noto Sans', sans-serif;
+    }
+    .textbox-3d {
+      background-color: #e92932;
+      border: 1px solid #c7222b;
+      box-shadow: 0px 4px 0px #a51c23, 0px 6px 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.15s ease-out;
+    }
+    .textbox-3d:hover {
+      transform: translateY(-2px);
+      box-shadow: 0px 6px 0px #a51c23, 0px 8px 12px rgba(0, 0, 0, 0.4);
+    }
+    .textbox-3d:active {
+      transform: translateY(1px);
+      box-shadow: 0px 2px 0px #a51c23, 0px 3px 6px rgba(0, 0, 0, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <section id="login" class="min-h-screen flex flex-col items-center justify-center bg-black bg-opacity-60 relative">
+    <div class="absolute inset-0 bg-cover bg-center blur-sm brightness-50" style="background-image: url('https://lh3.googleusercontent.com/...');"></div>
+    <div class="z-10 bg-black bg-opacity-70 p-8 rounded-lg max-w-md w-full text-center">
+      <h1 class="text-2xl font-bold mb-4">VPlay IPTV</h1>
+      <h2 class="text-4xl font-bold mb-8">Conéctate a tu Entretenimiento</h2>
+      <button class="textbox-3d w-full py-4 mb-4 text-lg font-bold rounded">M3U Playlist</button>
+      <button class="textbox-3d w-full py-4 text-lg font-bold rounded">Xtream Codes</button>
+    </div>
+  </section>
+  <div id="app" class="hidden">
+    <nav class="flex bg-[#181818] text-white p-4 space-x-4 justify-center">
+      <a href="#" data-section="home" class="hover:text-[#e92933]">Inicio</a>
+      <a href="#" data-section="movies" class="hover:text-[#e92933]">Películas</a>
+      <a href="#" data-section="series" class="hover:text-[#e92933]">Series</a>
+      <a href="#" data-section="tv" class="hover:text-[#e92933]">TV</a>
+    </nav>
+    <div id="view" class="p-6"></div>
+  </div>
+  <script>
+    const state = { current: 'login' };
+    function loadView(view) {
+      const viewContainer = document.getElementById('view');
+      const content = {
+        home: "<h1 class='text-3xl font-bold mb-4'>Inicio</h1><p>Contenido destacado y carruseles.</p>",
+        movies: "<h1 class='text-3xl font-bold mb-4'>Películas</h1><p>Explora la biblioteca de películas.</p>",
+        series: "<h1 class='text-3xl font-bold mb-4'>Series</h1><p>Explora la biblioteca de series.</p>",
+        tv: "<h1 class='text-3xl font-bold mb-4'>TV en Vivo</h1><p>Guía de canales y reproducción.</p>"
+      };
+      viewContainer.innerHTML = content[view] || '<p>Vista no disponible.</p>';
+      state.current = view;
+    }
+    function initApp() {
+      document.querySelectorAll('.textbox-3d').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.getElementById('login').style.display = 'none';
+          document.getElementById('app').classList.remove('hidden');
+          loadView('home');
+        });
+      });
+      document.querySelectorAll('[data-section]').forEach(link => {
+        link.addEventListener('click', e => {
+          e.preventDefault();
+          loadView(link.dataset.section);
+        });
+      });
+    }
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
